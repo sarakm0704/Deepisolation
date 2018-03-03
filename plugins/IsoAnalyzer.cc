@@ -111,6 +111,8 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
        std::vector<double>* chIso;
        std::vector<double>* nhIso;
        std::vector<double>* phIso;
+       std::vector<double>* absIso;
+       std::vector<double>* relIso;
        std::vector<double>* chN;
        std::vector<double>* nhN;
        std::vector<double>* phN;
@@ -179,6 +181,9 @@ IsoAnalyzer::IsoAnalyzer(const edm::ParameterSet& iConfig)
    chIso = new std::vector<double>();
    nhIso = new std::vector<double>();
    phIso = new std::vector<double>();
+   absIso = new std::vector<double>();
+   relIso = new std::vector<double>();
+
    chN = new std::vector<double>();
    nhN = new std::vector<double>();
    phN = new std::vector<double>();
@@ -236,6 +241,9 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   chIso->clear();
   nhIso->clear();
   phIso->clear();
+  absIso->clear();
+  relIso->clear();
+
   chN->clear();
   nhN->clear();
   phN->clear();
@@ -318,6 +326,9 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     float chIso03 = 0;
     float nhIso03 = 0;
     float phIso03 = 0;
+
+    float absiso = 0;
+    float reliso = 0; 
  
     for (const pat::PackedCandidate &pfc : *pfcands){
      const unsigned int absId = std::abs(pfc.pdgId());
@@ -352,6 +363,10 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           phIso03 = phIso03 + iso;
         }
       }
+    
+     absiso = chIso03 + nhIso03 + phIso03;
+     reliso = absiso / muon.pt();
+
     } //end of pf candidates loop
 
     chN->push_back(chn);
@@ -360,7 +375,10 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
     chIso->push_back(chIso03);   
     nhIso->push_back(nhIso03);   
-    phIso->push_back(phIso03);   
+    phIso->push_back(phIso03);  
+ 
+    absIso->push_back(absiso);   
+    relIso->push_back(reliso);    
 
     //dR
     float chR_avg = 0;
@@ -394,7 +412,7 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 //    }
 
 /*
-    c(ut << "here 1" << endl;
+    cout << "here 1" << endl;
     double chiso = muon.isoDeposit(pat::PfChargedHadronIso)->depositAndCountWithin(dRch_, vetos_ch).first;
     cout << "here 2" << endl;
     double nhiso = muon.isoDeposit(pat::PfNeutralHadronIso)->depositAndCountWithin(dRnh_, vetos_nh).first;
@@ -407,15 +425,16 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     cout << "here 6 " << endl;
     double phn = muon.isoDeposit(pat::PfGammaIso)->depositAndCountWithin(dRph_, vetos_ph).second;
     cout << "here 7 " << endl;
-    
+
+
+    chN->push_back(chn);
+    nhN->push_back(nhn);
+    phN->push_back(phn);    
     chIso->push_back(chiso);
     nhIso->push_back(nhiso);
     phIso->push_back(phiso);
-    chN->push_back(chn);
-    nhN->push_back(nhn);
-    phN->push_back(phn);
-*/
 
+*/
     //to study surrounding particles
     typedef reco::IsoDeposit::const_iterator IM;
 
@@ -444,6 +463,10 @@ IsoAnalyzer::beginJob()
    tree->Branch("chIso","std::vector<double>",&chIso);
    tree->Branch("nhIso","std::vector<double>",&nhIso);
    tree->Branch("phIso","std::vector<double>",&phIso);
+
+   tree->Branch("absIso","std::vector<double>",&absIso);
+   tree->Branch("relIso","std::vector<double>",&relIso);
+
    tree->Branch("chN","std::vector<double>",&chN);
    tree->Branch("nhN","std::vector<double>",&nhN);
    tree->Branch("phN","std::vector<double>",&phN);
