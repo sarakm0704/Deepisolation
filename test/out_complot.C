@@ -19,6 +19,9 @@ void out_complot(string inputfile){
   TTreeReaderArray<Double_t> ph_dEta(reader, "ph_deta");
   TTreeReaderArray<Double_t> ph_dPhi(reader, "ph_dphi");
   TTreeReaderArray<Double_t> phIso(reader, "phIso");
+  
+  TTreeReaderArray<Double_t> absIso(reader, "absIso");
+  TTreeReaderArray<Double_t> relIso(reader, "relIso");
  
   TTreeReaderArray<Double_t> pT(reader, "pt");
   TTreeReaderArray<Double_t> Eta(reader, "eta");
@@ -41,6 +44,9 @@ void out_complot(string inputfile){
   TH1D *h_ph_dEta = new TH1D("h_ph_deta","h_ph_deta",100,0,0.5);
   TH1D *h_ph_dPhi = new TH1D("h_ph_dphi","h_ph_dphi",100,0,0.5);
   TH1D *h_phIso = new TH1D("h_phIso","h_phIso",100,0,50);
+
+  TH1D *h_absIso = new TH1D("h_absIso","h_absIso",100,0,50);
+  TH1D *h_relIso = new TH1D("h_relIso","h_relIso",100,0,50);
 
   TH1D *h_pT = new TH1D("h_pt","h_pt",100,0,100);
   TH1D *h_Eta = new TH1D("h_eta","h_eta",100,-6,6);
@@ -192,7 +198,21 @@ void out_complot(string inputfile){
     h_phIso->Fill(phiso);
     myfile << phiso << " ";
 
-  //  cout << "pT" << endl;
+    if( absIso.GetSize() == 0 ) continue;
+    double absiso = -1;
+    for (int i = 0; i < absIso.GetSize(); ++i){
+      absiso = absIso[i];
+      break;
+    }
+    h_absIso->Fill(absiso);
+
+    if( relIso.GetSize() == 0 ) continue;
+    double reliso = -1;
+    for (int i = 0; i < relIso.GetSize(); ++i){
+      reliso = relIso[i];
+      break;
+    }
+    h_relIso->Fill(reliso);
 
     if( pT.GetSize() == 0 ) continue;
     double pt = -1;
@@ -228,7 +248,7 @@ void out_complot(string inputfile){
 
   myfile.close();
 
-  TFile *f_out = new TFile(Form("out/hist_%s",inputfile.c_str()),"RECREATE");
+  TFile *f_out = new TFile(Form("ar/hist_%s",inputfile.c_str()),"RECREATE");
   h_chN->Write();
   h_ch_dR->Write();
   h_ch_dEta->Write();
@@ -244,6 +264,8 @@ void out_complot(string inputfile){
   h_ph_dEta->Write();
   h_ph_dPhi->Write();
   h_phIso->Write();
+  h_absIso->Write();
+  h_relIso->Write();
   h_pT->Write();
   h_Eta->Write();
   h_Phi->Write();

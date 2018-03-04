@@ -1,7 +1,7 @@
 void complot(){
 
-  TFile * f_qcd = new TFile("out/hist_mergeQCD.root");
-  TFile * f_Z = new TFile("out/hist_Z.root");
+  TFile * f_qcd = new TFile("ar/hist_mergeQCD.root");
+  TFile * f_Z = new TFile("ar/hist_Z.root");
 
   TH1D * h_chN_qcd = (TH1D*) f_qcd->Get("h_chN"); 
   TH1D * h_ch_dR_qcd = (TH1D*) f_qcd->Get("h_ch_dR"); 
@@ -76,7 +76,7 @@ void complot(){
   h_chN_qcd->SetTitle("");
   h_chN_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_chN_qcd->GetXaxis()->SetTitle("Number of charged hadrons around #mu");
-  c_chN->Print("out/c_chN.pdf");
+  c_chN->Print("ar/c_chN.pdf");
  
   TCanvas * c_nhN = new TCanvas("c_nhN","c_nhN",600,600);
   h_nhN_qcd->SetLineColor(kBlue);
@@ -97,7 +97,7 @@ void complot(){
   h_nhN_qcd->SetTitle("");
   h_nhN_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_nhN_qcd->GetXaxis()->SetTitle("Number of neutral hadrons around #mu");
-  c_nhN->Print("out/c_nhN.pdf");
+  c_nhN->Print("ar/c_nhN.pdf");
   
   TCanvas * c_phN = new TCanvas("c_phN","c_phN",600,600);
   h_phN_qcd->SetLineColor(kBlue);
@@ -118,7 +118,7 @@ void complot(){
   h_phN_qcd->SetTitle("");
   h_phN_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_phN_qcd->GetXaxis()->SetTitle("Number of photons around #mu");
-  c_phN->Print("out/c_phN.pdf");
+  c_phN->Print("ar/c_phN.pdf");
 
   TCanvas * c_ch_dR = new TCanvas("c_ch_dR","c_ch_dR",600,600);
   h_ch_dR_qcd->SetLineColor(kBlue);
@@ -139,7 +139,7 @@ void complot(){
   h_ch_dR_qcd->SetTitle("");
   h_ch_dR_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ch_dR_qcd->GetXaxis()->SetTitle("#DeltaR between #mu and charged hadrons");
-  c_ch_dR->Print("out/c_ch_dR.pdf");
+  c_ch_dR->Print("ar/c_ch_dR.pdf");
 
   TCanvas * c_ch_dPhi = new TCanvas("c_ch_dPhi","c_ch_dPhi",600,600);
   h_ch_dPhi_qcd->SetLineColor(kBlue);
@@ -160,7 +160,7 @@ void complot(){
   h_ch_dPhi_qcd->SetAxisRange(0.,0.3,"X");
   h_ch_dPhi_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ch_dPhi_qcd->GetXaxis()->SetTitle("#Delta#phi between #mu and charged hadrons");
-  c_ch_dPhi->Print("out/c_ch_dPhi.pdf");
+  c_ch_dPhi->Print("ar/c_ch_dPhi.pdf");
 
   TCanvas * c_ch_dEta = new TCanvas("c_ch_dEta","c_ch_dEta",600,600);
   h_ch_dEta_qcd->SetLineColor(kBlue);
@@ -181,7 +181,7 @@ void complot(){
   h_ch_dEta_qcd->SetTitle("");
   h_ch_dEta_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ch_dEta_qcd->GetXaxis()->SetTitle("#Delta#eta between #mu and charged hadrons");
-  c_ch_dEta->Print("out/c_ch_dEta.pdf");
+  c_ch_dEta->Print("ar/c_ch_dEta.pdf");
 
   TCanvas * c_nh_dPhi = new TCanvas("c_nh_dPhi","c_nh_dPhi",600,600);
   h_nh_dPhi_qcd->SetLineColor(kBlue);
@@ -202,7 +202,7 @@ void complot(){
   h_nh_dPhi_qcd->SetTitle("");
   h_nh_dPhi_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_nh_dPhi_qcd->GetXaxis()->SetTitle("#Delta#phi between #mu and neutral hadrons");
-  c_nh_dPhi->Print("out/c_nh_dPhi.pdf");
+  c_nh_dPhi->Print("ar/c_nh_dPhi.pdf");
 
   TCanvas * c_nh_dEta = new TCanvas("c_nh_dEta","c_nh_dEta",600,600);
   h_nh_dEta_qcd->SetLineColor(kBlue);
@@ -223,7 +223,7 @@ void complot(){
   h_nh_dEta_qcd->SetTitle("");
   h_nh_dEta_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_nh_dEta_qcd->GetXaxis()->SetTitle("#Delta#eta betwwen #mu and nuetral hadrons");
-  c_nh_dEta->Print("out/c_nh_dEta.pdf");
+  c_nh_dEta->Print("ar/c_nh_dEta.pdf");
 
   TCanvas * c_ph_dPhi = new TCanvas("c_ph_dPhi","c_ph_dPhi",600,600);
   h_ph_dPhi_qcd->SetLineColor(kBlue);
@@ -244,7 +244,7 @@ void complot(){
   h_ph_dPhi_qcd->SetTitle("");
   h_ph_dPhi_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ph_dPhi_qcd->GetXaxis()->SetTitle("#Delta#phi between #mu and photons");
-  c_ph_dPhi->Print("out/c_ph_dPhi.pdf");
+  c_ph_dPhi->Print("ar/c_ph_dPhi.pdf");
 
   TCanvas * c_ph_dEta = new TCanvas("c_ph_dEta","c_ph_dEta",600,600);
   h_ph_dEta_qcd->SetLineColor(kBlue);
@@ -265,7 +265,7 @@ void complot(){
   h_ph_dEta_qcd->SetTitle("");
   h_ph_dEta_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ph_dEta_qcd->GetXaxis()->SetTitle("#Delta#eta between #mu and photons");
-  c_ph_dEta->Print("out/c_ph_dEta.pdf");
+  c_ph_dEta->Print("ar/c_ph_dEta.pdf");
 
   TCanvas * c_nh_dR = new TCanvas("c_nh_dR","c_nh_dR",600,600);
   h_nh_dR_qcd->SetLineColor(kBlue);
@@ -286,7 +286,7 @@ void complot(){
   h_nh_dR_qcd->SetTitle("");
   h_nh_dR_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_nh_dR_qcd->GetXaxis()->SetTitle("#DeltaR between #mu and neutral hadrons");
-  c_nh_dR->Print("out/c_nh_dR.pdf");
+  c_nh_dR->Print("ar/c_nh_dR.pdf");
 
   TCanvas * c_ph_dR = new TCanvas("c_ph_dR","c_ph_dR",600,600);
   h_ph_dR_qcd->SetLineColor(kBlue);
@@ -307,7 +307,7 @@ void complot(){
   h_ph_dR_qcd->SetTitle("");
   h_ph_dR_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_ph_dR_qcd->GetXaxis()->SetTitle("#DeltaR between #mu and photons");
-  c_ph_dR->Print("out/c_ph_dR.pdf");
+  c_ph_dR->Print("ar/c_ph_dR.pdf");
 
   TCanvas * c_chIso = new TCanvas("c_chIso","c_chIso",600,600);
   h_chIso_qcd->SetLineColor(kBlue);
@@ -328,7 +328,7 @@ void complot(){
   h_chIso_qcd->SetTitle("");
   h_chIso_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_chIso_qcd->GetXaxis()->SetTitle("Sum of charged hadron p_{T}(GeV)");
-  c_chIso->Print("out/c_chIso.pdf");
+  c_chIso->Print("ar/c_chIso.pdf");
 
   TCanvas * c_nhIso = new TCanvas("c_nhIso","c_nhIso",600,600);
   h_nhIso_qcd->SetLineColor(kBlue);
@@ -349,7 +349,7 @@ void complot(){
   h_nhIso_qcd->SetTitle("");
   h_nhIso_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_nhIso_qcd->GetXaxis()->SetTitle("Sum of neutral hadron p_{T}(GeV)");
-  c_nhIso->Print("out/c_nhIso.pdf");
+  c_nhIso->Print("ar/c_nhIso.pdf");
   
   TCanvas * c_phIso = new TCanvas("c_phIso","c_phIso",600,600);
   h_phIso_qcd->SetLineColor(kBlue);
@@ -370,7 +370,49 @@ void complot(){
   h_phIso_qcd->SetTitle("");
   h_phIso_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_phIso_qcd->GetXaxis()->SetTitle("Sum of photon p_{T}(GeV)");
-  c_phIso->Print("out/c_phIso.pdf");
+  c_phIso->Print("ar/c_phIso.pdf");
+
+  TCanvas * c_absIso = new TCanvas("c_absIso","c_absIso",600,600);
+  h_absIso_qcd->SetLineColor(kBlue);
+  h_absIso_Z->SetLineColor(kRed);
+  h_absIso_qcd->Draw("Hist");
+  h_absIso_Z->Draw("sameHist");
+  h_absIso_qcd->SetStats(0);
+  TLegend *leg01 = new TLegend(.75,.85,.88,.95,"");
+  leg01->AddEntry(h_absIso_qcd,"QCD");
+  leg01->AddEntry(h_absIso_Z,"Z->#mu#mu");
+  leg01->Draw();
+  Double_t absIso_qcd_scale = 1/(h_absIso_qcd->Integral());
+  Double_t absIso_Z_scale = 1/(h_absIso_Z->Integral());
+  h_absIso_qcd->Scale(absIso_qcd_scale);
+  h_absIso_Z->Scale(absIso_Z_scale);
+  h_absIso_qcd->SetAxisRange(0.,0.6,"Y");
+  h_absIso_qcd->SetAxisRange(0.,20,"X");
+  h_absIso_qcd->SetTitle("");
+  h_absIso_qcd->GetYaxis()->SetTitle("Normalized Events");
+  h_absIso_qcd->GetXaxis()->SetTitle("Sum of absoton p_{T}(GeV)");
+  c_absIso->Print("ar/c_absIso.pdf");
+
+  TCanvas * c_relIso = new TCanvas("c_relIso","c_relIso",600,600);
+  h_relIso_qcd->SetLineColor(kBlue);
+  h_relIso_Z->SetLineColor(kRed);
+  h_relIso_qcd->Draw("Hist");
+  h_relIso_Z->Draw("sameHist");
+  h_relIso_qcd->SetStats(0);
+  TLegend *leg02 = new TLegend(.75,.85,.88,.95,"");
+  leg02->AddEntry(h_relIso_qcd,"QCD");
+  leg02->AddEntry(h_relIso_Z,"Z->#mu#mu");
+  leg02->Draw();
+  Double_t relIso_qcd_scale = 1/(h_relIso_qcd->Integral());
+  Double_t relIso_Z_scale = 1/(h_relIso_Z->Integral());
+  h_relIso_qcd->Scale(relIso_qcd_scale);
+  h_relIso_Z->Scale(relIso_Z_scale);
+  h_relIso_qcd->SetAxisRange(0.,0.6,"Y");
+  h_relIso_qcd->SetAxisRange(0.,20,"X");
+  h_relIso_qcd->SetTitle("");
+  h_relIso_qcd->GetYaxis()->SetTitle("Normalized Events");
+  h_relIso_qcd->GetXaxis()->SetTitle("Sum of reloton p_{T}(GeV)");
+  c_relIso->Print("ar/c_relIso.pdf");
 
   TCanvas * c_pT = new TCanvas("c_pT","c_pT",600,600);
   h_pT_qcd->SetLineColor(kBlue);
@@ -391,7 +433,7 @@ void complot(){
   h_pT_qcd->SetTitle("");
   h_pT_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_pT_qcd->GetXaxis()->SetTitle("p_{T}(GeV) of Muon");
-  c_pT->Print("out/c_pT.pdf");
+  c_pT->Print("ar/c_pT.pdf");
 
   TCanvas * c_Eta = new TCanvas("c_Eta","c_Eta",600,600);
   h_Eta_qcd->SetLineColor(kBlue);
@@ -412,7 +454,7 @@ void complot(){
   h_Eta_qcd->SetTitle("");
   h_Eta_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_Eta_qcd->GetXaxis()->SetTitle("#eta of Muon");
-  c_Eta->Print("out/c_Eta.pdf");
+  c_Eta->Print("ar/c_Eta.pdf");
 
   TCanvas * c_Phi = new TCanvas("c_Phi","c_Phi",600,600);
   h_Phi_qcd->SetLineColor(kBlue);
@@ -433,5 +475,5 @@ void complot(){
   h_Phi_qcd->SetTitle("");
   h_Phi_qcd->GetYaxis()->SetTitle("Normalized Events");
   h_Phi_qcd->GetXaxis()->SetTitle("#phi of Muon");
-  c_Phi->Print("out/c_Phi.pdf");
+  c_Phi->Print("ar/c_Phi.pdf");
 }
