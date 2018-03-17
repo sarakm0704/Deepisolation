@@ -135,7 +135,7 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
        std::vector<double>* chargedhadron_pt;
        std::vector<double>* chargedhadron_eta;
        std::vector<double>* chargedhadron_phi;
-
+ 
        TH1D * IsoNtuple; 
 };
 
@@ -266,17 +266,16 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   chargedhadron_pt->clear();
   chargedhadron_eta->clear();
   chargedhadron_phi->clear();
- 
+
   edm::Handle<edm::View<pat::Muon> > muons;
   iEvent.getByToken(muonLabel_, muons);
 
-  //edm::Handle<reco::PFCandidateCollection> pfCandidates_;
- 
+  //edm::Handle<reco::PFCandidateCollection> pfCandidates_; 
   //iEvent.getByToken(pfCandidateLabel_, pfCandidates_);
 
   edm::Handle<pat::PackedCandidateCollection> pfcands;
   iEvent.getByToken(pfSrc_, pfcands);
-  
+
   EVENT  = iEvent.id().event();
   RUN    = iEvent.id().run();
   LUMI   = iEvent.id().luminosityBlock();
@@ -285,6 +284,8 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     pat::Muon muon = muons->at(i);
 
     if( muon.pt() < 20) continue;
+    if( muon.eta() < -2.1) continue;
+    if( muon.eta() > 2.1) continue;
 
     pt->push_back(muon.pt());
     eta->push_back(muon.eta());
@@ -328,21 +329,40 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     float phIso03 = 0;
 
     float absiso = 0;
-    float reliso = 0; 
- 
-    for (const pat::PackedCandidate &pfc : *pfcands){
-     const unsigned int absId = std::abs(pfc.pdgId());
+    float reliso = 0;
+    
+    float pileup = 0; 
+    float neutral = 0;
+
+    std::vector<reco::CandidatePtr> footprint; 
+    for (unsigned int i = 0, n=muon.numberOfSourceCandidatePtrs(); i < n; ++i) {
+        footprint.push_back(muon.sourceCandidatePtr(i));  
+    }
+
+    for (unsigned int i = 0, n = pfcands->size(); i < n; ++i) {
+      const pat::PackedCandidate &pfc = (*pfcands)[i];
+      const unsigned int absId = std::abs(pfc.pdgId());
       double dR = deltaR( muon.p4(), pfc.p4() );
       double dPhi = deltaPhi( muon.phi(), pfc.phi() );
       double dEta = abs( muon.eta() - pfc.eta() );
       double iso = pfc.pt(); 
       if( absId ==  211 ) {  // charged hadron
-        if( dR < 0.3 ) { 
-          chn++;
-          chR = chR + dR; 
-          chPhi = chPhi + dPhi; 
-          chEta = chEta + dEta; 
-          chIso03 = chIso03 + iso; 
+        if( dR < 0.3 ) {
+          //testing footprint
+          if(std::find(footprint.begin(), footprint.end(),  reco::CandidatePtr(pfcands,i)) != footprint.end()) {
+             continue;
+          } 
+          //end footprint 
+          if( pfc.fromPV() >= 2 ){ 
+            chIso03 = chIso03 + iso;
+            chn++;
+            chR = chR + dR; 
+            chPhi = chPhi + dPhi; 
+            chEta = chEta + dEta;
+          }
+          else{
+            pileup = pileup + iso;
+          } 
         }
       }
       if( absId ==  130 ) {  // neutral hadron
@@ -363,8 +383,9 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           phIso03 = phIso03 + iso;
         }
       }
-    
-     absiso = chIso03 + nhIso03 + phIso03;
+     
+     neutral = nhIso03 + phIso03;
+     absiso = chIso03 + std::max(0.0, neutral-0.5*pileup);
      reliso = absiso / muon.pt();
 
     } //end of pf candidates loop
