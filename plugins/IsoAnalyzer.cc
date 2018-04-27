@@ -108,11 +108,33 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
        std::vector<double>* phi;
        std::vector<double>* pt;
 
+       std::vector<double>* chIso0_1;
+       std::vector<double>* chIso1_2;
+       std::vector<double>* chIso2_3;
        std::vector<double>* chIso;
+       std::vector<double>* schIso;
+
+       std::vector<double>* nhIso0_1;
+       std::vector<double>* nhIso1_2;
+       std::vector<double>* nhIso2_3;
        std::vector<double>* nhIso;
+
+       std::vector<double>* phIso0_1;
+       std::vector<double>* phIso1_2;
+       std::vector<double>* phIso2_3;
        std::vector<double>* phIso;
+
        std::vector<double>* absIso;
        std::vector<double>* relIso;
+       std::vector<double>* Pileup;
+
+       std::vector<double>* chIso_org;
+       std::vector<double>* puChIso_org;
+       std::vector<double>* nhIso_org;
+       std::vector<double>* phIso_org;
+       std::vector<double>* absIso_org;
+       std::vector<double>* relIso_org;
+
        std::vector<double>* chN;
        std::vector<double>* nhN;
        std::vector<double>* phN;
@@ -178,11 +200,32 @@ IsoAnalyzer::IsoAnalyzer(const edm::ParameterSet& iConfig)
    eta = new std::vector<double>();
    phi = new std::vector<double>();
 
+   chIso0_1 = new std::vector<double>();
+   chIso1_2 = new std::vector<double>();
+   chIso2_3 = new std::vector<double>();
    chIso = new std::vector<double>();
+   schIso = new std::vector<double>();
+
+   nhIso0_1 = new std::vector<double>();
+   nhIso1_2 = new std::vector<double>();
+   nhIso2_3 = new std::vector<double>();
    nhIso = new std::vector<double>();
+
+   phIso0_1 = new std::vector<double>();
+   phIso1_2 = new std::vector<double>();
+   phIso2_3 = new std::vector<double>();
    phIso = new std::vector<double>();
+
    absIso = new std::vector<double>();
    relIso = new std::vector<double>();
+   Pileup = new std::vector<double>();
+
+   chIso_org = new std::vector<double>();
+   puChIso_org = new std::vector<double>();
+   nhIso_org = new std::vector<double>();
+   phIso_org = new std::vector<double>();
+   absIso_org = new std::vector<double>();
+   relIso_org = new std::vector<double>();
 
    chN = new std::vector<double>();
    nhN = new std::vector<double>();
@@ -238,11 +281,31 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   eta->clear();
   phi->clear();
 
+  chIso0_1->clear();
+  chIso1_2->clear();
+  chIso2_3->clear();
   chIso->clear();
+  schIso->clear();
+
+  nhIso0_1->clear();
+  nhIso1_2->clear();
+  nhIso2_3->clear();
   nhIso->clear();
+
+  phIso0_1->clear();
+  phIso1_2->clear();
+  phIso2_3->clear();
   phIso->clear();
   absIso->clear();
   relIso->clear();
+  Pileup->clear();
+
+  chIso_org->clear();
+  puChIso_org->clear();
+  nhIso_org->clear();
+  phIso_org->clear();
+  absIso_org->clear();
+  relIso_org->clear();
 
   chN->clear();
   nhN->clear();
@@ -324,15 +387,35 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     float nhEta = 0;
     float phEta = 0;
  
-    float chIso03 = 0;
-    float nhIso03 = 0;
-    float phIso03 = 0;
+    float chiso0_1 = 0;
+    float chiso1_2 = 0;
+    float chiso2_3 = 0;
+    float chiso = 0;
+    float schiso = 0;
+
+    float nhiso0_1 = 0;
+    float nhiso1_2 = 0;
+    float nhiso2_3 = 0;
+    float nhiso = 0;
+
+    float phiso0_1 = 0;
+    float phiso1_2 = 0;
+    float phiso2_3 = 0;
+    float phiso = 0;
 
     float absiso = 0;
     float reliso = 0;
-    
+   
+    float chiso_org = 0;
+    float puChiso_org = 0;
+    float nhiso_org = 0;
+    float phiso_org = 0;
+    float absiso_org = 0;
+    float reliso_org = 0;
+ 
     float pileup = 0; 
     float neutral = 0;
+    float neutral_org = 0;
 
     std::vector<reco::CandidatePtr> footprint; 
     for (unsigned int i = 0, n=muon.numberOfSourceCandidatePtrs(); i < n; ++i) {
@@ -354,11 +437,22 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           } 
           //end footprint 
           if( pfc.fromPV() >= 2 ){ 
-            chIso03 = chIso03 + iso;
             chn++;
             chR = chR + dR; 
             chPhi = chPhi + dPhi; 
             chEta = chEta + dEta;
+            chiso = chiso + iso;
+            if( dR < 0.1 ){
+              chiso0_1 = chiso0_1 + iso;
+            }
+            else if( dR < 0.2 ){
+              chiso1_2 = chiso1_2 + iso;
+            }
+            else{
+              chiso2_3 = chiso2_3 + iso;
+            }
+            schiso = chiso0_1 + chiso1_2 + chiso2_3;
+
           }
           else{
             pileup = pileup + iso;
@@ -370,8 +464,17 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           nhn++;
           nhR = nhR + dR;
           nhPhi = nhPhi + dPhi; 
-          nhEta = nhEta + dEta; 
-          nhIso03 = nhIso03 + iso;
+          nhEta = nhEta + dEta;
+          nhiso = nhiso + iso;
+            if( dR < 0.1 ){
+              nhiso0_1 = nhiso0_1 + iso;
+            }
+            else if( dR < 0.2 ){
+              nhiso1_2 = nhiso1_2 + iso;
+            }
+            else{
+              nhiso2_3 = nhiso2_3 + iso;
+            }
         }
       }
       if( absId == 22) {  // photon 
@@ -379,13 +482,22 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
           phn++;
           phR = phR + dR;
           phPhi = phPhi + dPhi; 
-          phEta = phEta + dEta; 
-          phIso03 = phIso03 + iso;
+          phEta = phEta + dEta;
+          phiso = phiso + iso;
+            if( dR < 0.1 ){
+              phiso0_1 = phiso0_1 + iso;
+            }
+            else if( dR < 0.2 ){
+              phiso1_2 = phiso1_2 + iso;
+            }
+            else{
+              phiso2_3 = phiso2_3 + iso;
+            }
         }
       }
      
-     neutral = nhIso03 + phIso03;
-     absiso = chIso03 + std::max(0.0, neutral-0.5*pileup);
+     neutral = nhiso + phiso;
+     absiso = chiso + std::max(0.0, neutral-0.5*pileup);
      reliso = absiso / muon.pt();
 
     } //end of pf candidates loop
@@ -394,12 +506,40 @@ IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     nhN->push_back(nhn);
     phN->push_back(phn);
   
-    chIso->push_back(chIso03);   
-    nhIso->push_back(nhIso03);   
-    phIso->push_back(phIso03);  
+    chIso0_1->push_back(chiso0_1);   
+    chIso1_2->push_back(chiso1_2);   
+    chIso2_3->push_back(chiso2_3);   
+    chIso->push_back(chiso);  
+    schIso->push_back(schiso);  
  
+    nhIso0_1->push_back(nhiso0_1);   
+    nhIso1_2->push_back(nhiso1_2);   
+    nhIso2_3->push_back(nhiso2_3);   
+    nhIso->push_back(nhiso);   
+
+    phIso0_1->push_back(phiso0_1);   
+    phIso1_2->push_back(phiso1_2);   
+    phIso2_3->push_back(phiso2_3);   
+    phIso->push_back(phiso); 
+ 
+    Pileup->push_back(pileup); 
     absIso->push_back(absiso);   
     relIso->push_back(reliso);    
+
+    chiso_org = muon.chargedHadronIso();
+    puChiso_org = muon.puChargedHadronIso();
+    nhiso_org = muon.neutralHadronIso();
+    phiso_org = muon.photonIso();
+    neutral_org = nhiso_org + phiso_org;
+    absiso_org = chiso_org + std::max(0.0, neutral_org-0.5*puChiso_org);
+    reliso_org = absiso_org / muon.pt();
+
+    chIso_org->push_back(chiso_org);
+    puChIso_org->push_back(puChiso_org);
+    nhIso_org->push_back(nhiso_org);
+    phIso_org->push_back(phiso_org);
+    relIso_org->push_back(reliso_org);
+    absIso_org->push_back(absiso_org);
 
     //dR
     float chR_avg = 0;
@@ -481,12 +621,32 @@ IsoAnalyzer::beginJob()
    tree->Branch("eta","std::vector<double>",&eta);
    tree->Branch("phi","std::vector<double>",&phi);
 
+   tree->Branch("chIso0_1","std::vector<double>",&chIso0_1);
+   tree->Branch("chIso1_2","std::vector<double>",&chIso1_2);
+   tree->Branch("chIso2_3","std::vector<double>",&chIso2_3);
    tree->Branch("chIso","std::vector<double>",&chIso);
+   tree->Branch("schIso","std::vector<double>",&schIso);
+
+   tree->Branch("nhIso0_1","std::vector<double>",&nhIso0_1);
+   tree->Branch("nhIso1_2","std::vector<double>",&nhIso1_2);
+   tree->Branch("nhIso2_3","std::vector<double>",&nhIso2_3);
    tree->Branch("nhIso","std::vector<double>",&nhIso);
+
+   tree->Branch("phIso0_1","std::vector<double>",&phIso0_1);
+   tree->Branch("phIso1_2","std::vector<double>",&phIso1_2);
+   tree->Branch("phIso2_3","std::vector<double>",&phIso2_3);
    tree->Branch("phIso","std::vector<double>",&phIso);
 
+   tree->Branch("Pileup","std::vector<double>",&Pileup);
    tree->Branch("absIso","std::vector<double>",&absIso);
    tree->Branch("relIso","std::vector<double>",&relIso);
+
+   tree->Branch("chIso_org","std::vector<double>",&chIso_org);
+   tree->Branch("puChIso_org","std::vector<double>",&puChIso_org);
+   tree->Branch("nhIso_org","std::vector<double>",&nhIso_org);
+   tree->Branch("phIso_org","std::vector<double>",&phIso_org);
+   tree->Branch("absIso_org","std::vector<double>",&absIso_org);
+   tree->Branch("relIso_org","std::vector<double>",&relIso_org);
 
    tree->Branch("chN","std::vector<double>",&chN);
    tree->Branch("nhN","std::vector<double>",&nhN);
