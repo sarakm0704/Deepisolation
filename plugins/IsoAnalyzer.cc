@@ -43,7 +43,6 @@
 #include "DataFormats/MuonReco/interface/MuonSelectors.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
-//#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "TH1.h"
 #include "TTree.h"
@@ -76,7 +75,6 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       //edm::EDGetTokenT<reco::PFCandidateCollection> pfCandidateLabel_;
       edm::EDGetTokenT<pat::PackedCandidateCollection> pfSrc_;
       edm::EDGetTokenT<reco::VertexCollection> vertexToken_;
-//      edm::EDGetTokenT<reco::GenParticleCollection>  genToken_;
 
       TTree *tree;
 
@@ -105,10 +103,9 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
       double b_chiso03_org, b_puChiso03_org, b_nhiso03_org, b_phiso03_org, b_absiso03_org, b_reliso03_org, b_neutral03_org;
 
+      double b_trackiso, b_ecaliso, b_hcaliso;
 
-      vector<double> b_nh_pt;
-      vector<double> b_nh_eta;
-      vector<double> b_nh_phi;
+      int check_sb;
 
       TH1D *IsoNtuple; 
 };
@@ -120,7 +117,6 @@ IsoAnalyzer::IsoAnalyzer(const edm::ParameterSet& iConfig)
   //pfCandidateLabel_(consumes<pat::PFCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfCandidateLabel"))),
   pfSrc_(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfSrc"))),
   vertexToken_( consumes<reco::VertexCollection>( iConfig.getParameter<edm::InputTag> ( "VertexTag" ))),
-//  genToken_(consumes<reco::GenParticleCollection>(iConfig.getParameter<edm::InputTag>("genLabel"))),
   dRch_(iConfig.getUntrackedParameter<double>("dRch",0.4)),
   dRnh_(iConfig.getUntrackedParameter<double>("dRnh",0.4)),
   dRph_(iConfig.getUntrackedParameter<double>("dRph",0.4)),
@@ -158,10 +154,6 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
  using namespace isodeposit;
  using namespace edm;
 
- b_nh_pt.clear();
- b_nh_eta.clear();
- b_nh_phi.clear();
-
  edm::Handle<edm::View<pat::Muon> > muons;
  iEvent.getByToken(muonLabel_, muons);
 
@@ -177,18 +169,8 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   const auto& vertex = vertexHandle->at(0);
   //const reco::Vertex& vertex = vertexHandle->at(0);
 
-//  edm::Handle<reco::GenParticleCollection> genParticles;
-//  iEvent.getByToken(genToken_, genParticles);
-/* genparticles
- for(unsigned int i = 0; i < genParticles->size(); i++){
- const reco::Candidate & gp = (*genParticles)[i];  
- TLorentzVector Gen(0,0,0,0);
- Gen.SetPtEtaPhiE(gp.pt(), gp.eta(), gp.phi(), gp.energy());
- if ( Gen.M() < 50 ) continue;
- cout << "pass" << Gen.M() << endl;
-*/
-  for (unsigned i = 0; i != muons->size(); i++) {
-    pat::Muon muon = muons->at(i);
+  for (unsigned imu = 0; imu != muons->size(); imu++) {
+    pat::Muon muon = muons->at(imu);
 
     bool isTight = false;
 
@@ -220,8 +202,12 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     b_absiso = b_reliso = 0;
     b_chiso_org = b_puChiso_org = b_nhiso_org = b_phiso_org = b_absiso_org = b_reliso_org = b_neutral_org = 0;
     b_neutral = 0;
+    b_trackiso = b_ecaliso = b_hcaliso = 0;
+    check_sb = 0;
 
     //Fill Branch
+
+    //to get little event
     b_EVENT  = iEvent.id().event();
     b_RUN    = iEvent.id().run();
     b_LUMI   = iEvent.id().luminosityBlock();
@@ -259,7 +245,7 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       const unsigned int absId = std::abs(pfc.pdgId());
       double dR = deltaR( muon.p4(), pfc.p4() );
       double dPhi = deltaPhi( muon.phi(), pfc.phi() );
-      double dEta = abs( muon.eta() - pfc.eta() );
+      double dEta = muon.eta() - pfc.eta();
       double iso = pfc.pt();
 
       if( absId ==  211 ) {  // charged hadron
@@ -307,9 +293,6 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
           b_nh_dR = b_nh_dR + dR;
           b_nh_dPhi = b_nh_dPhi + dPhi; 
           b_nh_dEta = b_nh_dEta + dEta;
-          b_nh_pt.push_back(iso);
-          b_nh_eta.push_back(pfc.eta());
-          b_nh_phi.push_back(pfc.phi());
           b_nhiso = b_nhiso + iso;
             if( dR < 0.05 )      b_nhiso0_005 = b_nhiso0_005 + iso;
             else if( dR < 0.1 )  b_nhiso005_01 = b_nhiso005_01 + iso;
@@ -376,19 +359,17 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       b_nh_dEta = b_nh_dEta/b_nhn;
     }
 
-    //to check duplicated particle 
-    if ( b_nh_dEta >  0.043 &&  b_nh_dEta >  0.045) {
-      for (unsigned int i = 0, n = pfcands->size(); i < n; ++i) {
-        const pat::PackedCandidate &pfc = (*pfcands)[i];
-        cout << std::abs(pfc.pdgId()) <<  ", " <<  pfc.pt() << ", "  << pfc.eta() << ", " <<  pfc.phi() << ", " <<  pfc.energy() << endl;
-      }
-    }
-
     if( b_phn != 0){
       b_ph_dR = b_ph_dR/b_phn;
       b_ph_dPhi = b_ph_dPhi/b_phn;
       b_ph_dEta = b_ph_dEta/b_phn;
     }
+
+    b_trackiso = muon.trackIso();
+    b_ecaliso = muon.ecalIso();
+    b_hcaliso = muon.hcalIso();
+
+    check_sb = 1;
 
 
 /*
@@ -412,8 +393,9 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 
   if( GoodMuon ) tree->Fill(); 
     break;
-  } 
-// } //end of genparticles
+  }
+
+
 }
 
 
@@ -495,9 +477,11 @@ void IsoAnalyzer::beginJob(){
    tree->Branch("nh_dEta", &b_nh_dEta, "nh_dEta/d");
    tree->Branch("ph_dEta", &b_ph_dEta, "ph_dEta/d");
 
-   tree->Branch("nh_pt", "vector<double>", &b_nh_pt);
-   tree->Branch("nh_eta", "vector<double>", &b_nh_eta);
-   tree->Branch("nh_phi", "vector<double>", &b_nh_phi);
+   tree->Branch("trackIso", &b_trackiso, "trackIso/d");
+   tree->Branch("ecalIso", &b_ecaliso, "ecalIso/d");
+   tree->Branch("hcalIso", &b_hcaliso, "hcalIso/d");
+
+   tree->Branch("check_sb", &check_sb, "check_sb/i");
 
 }
 
