@@ -77,6 +77,7 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       edm::EDGetTokenT<reco::VertexCollection> vertexToken_;
 
       TTree *tree;
+      TH1D *EventInfo;
 
       double dRch_, dRnh_, dRph_;
       double vetoCHThreshold_, vetoNHThreshold_, vetoPHThreshold_;
@@ -84,6 +85,7 @@ class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       vector<double> vetoCHre_;
       vector<double> vetoNHre_;
       vector<double> vetoPHre_;
+      int label_;
 
       unsigned int b_EVENT, b_RUN, b_LUMI;
       double b_pt, b_eta, b_phi, b_energy;
@@ -128,12 +130,15 @@ IsoAnalyzer::IsoAnalyzer(const edm::ParameterSet& iConfig)
   vetoPHdR_(iConfig.getUntrackedParameter<double>("vetoPHdR",0.0)),
   vetoCHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoCHre")),
   vetoNHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoNHre")),
-  vetoPHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoPHre"))
-  
+  vetoPHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoPHre")),
+  label_(iConfig.getUntrackedParameter<int>("label"))
 {
   usesResource("TFileService");
   edm::Service<TFileService> fs;
   tree = fs->make<TTree>("tree", "Tree for isolation study");
+  EventInfo = fs->make<TH1D>("EventInfo","Event Information",2,0,2);
+  EventInfo->GetXaxis()->SetBinLabel(1,"Total Number of Events");
+  EventInfo->GetXaxis()->SetBinLabel(2,"Selected Number of Events");
 
   IsoNtuple = fs->make<TH1D>("tracks" , "Tracks" , 100 , 0 , 5000 );
 }
@@ -153,6 +158,8 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
  using namespace reco;
  using namespace isodeposit;
  using namespace edm;
+
+ EventInfo->Fill(0.5);
 
  edm::Handle<edm::View<pat::Muon> > muons;
  iEvent.getByToken(muonLabel_, muons);
@@ -179,8 +186,8 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     if( !isTight ) continue;
 
     if( muon.pt() < 20 ) continue;
-    if( muon.eta() < -2.1 ) continue;
-    if( muon.eta() > 2.1 ) continue;
+    if( muon.eta() < -2.4 ) continue;
+    if( muon.eta() > 2.4 ) continue;
 
     bool GoodMuon = false;
     if( muon.pt() > 20 && std::abs(muon.eta()) < 2.1) GoodMuon = true;
@@ -369,7 +376,7 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     b_ecaliso = muon.ecalIso();
     b_hcaliso = muon.hcalIso();
 
-    check_sb = 1;
+    check_sb = label_;
 
 
 /*
@@ -391,8 +398,11 @@ void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     //to study surrounding particles
     typedef reco::IsoDeposit::const_iterator IM;
 
-  if( GoodMuon ) tree->Fill(); 
-    break;
+    if( GoodMuon ) {
+      EventInfo->Fill(1.5);
+      tree->Fill(); 
+      break;
+    }
   }
 
 
