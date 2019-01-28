@@ -1,0 +1,551 @@
+// Package:    Iso/IsoAnalyzer
+// Class:      IsoAnalyzer
+// 
+/**\class IsoAnalyzer IsoAnalyzer.cc Iso/IsoAnalyzer/plugins/IsoAnalyzer.cc
+*/
+//
+// Original Author:  Ji Eun Choi
+//         Created:  Mon, 05 Feb 2018 09:35:36 GMT
+
+// system include files
+#include <memory>
+#include <iostream>
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "DataFormats/MuonReco/interface/Muon.h"
+#include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "CommonTools/Utils/interface/StringObjectFunction.h"
+#include "DataFormats/PatCandidates/interface/LookupTableRecord.h"
+
+#include "DataFormats/RecoCandidate/interface/IsoDepositDirection.h"
+#include "DataFormats/RecoCandidate/interface/IsoDeposit.h"
+#include "DataFormats/RecoCandidate/interface/IsoDepositVetos.h"
+#include "DataFormats/PatCandidates/interface/Isolation.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+
+#include "DataFormats/MuonReco/interface/MuonSelectors.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+
+#include "TH1.h"
+#include "TTree.h"
+#include "TLorentzVector.h"
+
+// If the analyzer does not use TFileService, please remove
+// the template argument to the base class so the class inherits
+// from  edm::one::EDAnalyzer<> and also remove the line from
+// constructor "usesResource("TFileService");"
+// This will improve performance in multithreaded jobs.
+
+using namespace std;
+
+class IsoAnalyzer : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+   public:
+      explicit IsoAnalyzer(const edm::ParameterSet&);
+      ~IsoAnalyzer();
+
+      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+
+
+   private:
+      virtual void beginJob() override;
+      virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+      virtual void endJob() override;
+
+      // ----------member data ---------------------------
+      //edm::InputTag minTracks_; //used to select what tracks to read from configuration file
+      edm::EDGetTokenT<edm::View<pat::Muon> > muonLabel_;
+      //edm::EDGetTokenT<reco::PFCandidateCollection> pfCandidateLabel_;
+      edm::EDGetTokenT<pat::PackedCandidateCollection> pfSrc_;
+      edm::EDGetTokenT<reco::VertexCollection> vertexToken_;
+
+      TTree *tree;
+
+      double dRch_, dRnh_, dRph_;
+      double vetoCHThreshold_, vetoNHThreshold_, vetoPHThreshold_;
+      double vetoCHdR_, vetoNHdR_, vetoPHdR_;
+      vector<double> vetoCHre_;
+      vector<double> vetoNHre_;
+      vector<double> vetoPHre_;
+
+      unsigned int b_EVENT, b_RUN, b_LUMI;
+      double b_pt, b_eta, b_phi, b_energy;
+      int b_chn, b_nhn, b_phn;
+      double b_ch_dR, b_ch_dPhi, b_ch_dEta;
+      double b_nh_dR, b_nh_dPhi, b_nh_dEta;
+
+      double b_ph_dR, b_ph_dPhi, b_ph_dEta;
+
+      double b_chiso0_005, b_chiso005_01, b_chiso01_015, b_chiso015_02, b_chiso02_025, b_chiso025_03;
+      double b_nhiso0_005, b_nhiso005_01, b_nhiso01_015, b_nhiso015_02, b_nhiso02_025, b_nhiso025_03;
+      double b_phiso0_005, b_phiso005_01, b_phiso01_015, b_phiso015_02, b_phiso02_025, b_phiso025_03;
+      double b_puiso0_005, b_puiso005_01, b_puiso01_015, b_puiso015_02, b_puiso02_025, b_puiso025_03;
+      double b_chiso, b_schiso, b_nhiso, b_phiso, b_puiso;
+      double b_absiso, b_reliso, b_neutral;
+      double b_chiso_org, b_puChiso_org, b_nhiso_org, b_phiso_org, b_absiso_org, b_reliso_org, b_neutral_org;
+
+      double b_chiso03_org, b_puChiso03_org, b_nhiso03_org, b_phiso03_org, b_absiso03_org, b_reliso03_org, b_neutral03_org;
+
+      vector<double> b_nh_pt;
+      vector<double> b_nh_eta;
+      vector<double> b_nh_phi;
+
+      double b_trackiso, b_ecaliso, b_hcaliso;
+
+      TH1D *IsoNtuple; 
+};
+
+
+IsoAnalyzer::IsoAnalyzer(const edm::ParameterSet& iConfig)
+ :
+  muonLabel_(consumes<edm::View<pat::Muon> >(iConfig.getParameter<edm::InputTag>( "muonLabel" ))),
+  //pfCandidateLabel_(consumes<pat::PFCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfCandidateLabel"))),
+  pfSrc_(consumes<pat::PackedCandidateCollection>(iConfig.getParameter<edm::InputTag>("pfSrc"))),
+  vertexToken_( consumes<reco::VertexCollection>( iConfig.getParameter<edm::InputTag> ( "VertexTag" ))),
+  dRch_(iConfig.getUntrackedParameter<double>("dRch",0.4)),
+  dRnh_(iConfig.getUntrackedParameter<double>("dRnh",0.4)),
+  dRph_(iConfig.getUntrackedParameter<double>("dRph",0.4)),
+  vetoCHThreshold_(iConfig.getUntrackedParameter<double>("vetoCHThreshold",0.0)),
+  vetoNHThreshold_(iConfig.getUntrackedParameter<double>("vetoNHThreshold",0.0)),
+  vetoPHThreshold_(iConfig.getUntrackedParameter<double>("vetoPHThreshold",0.0)),
+  vetoCHdR_(iConfig.getUntrackedParameter<double>("vetoCHdR",0.0)),
+  vetoNHdR_(iConfig.getUntrackedParameter<double>("vetoNHdR",0.0)),
+  vetoPHdR_(iConfig.getUntrackedParameter<double>("vetoPHdR",0.0)),
+  vetoCHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoCHre")),
+  vetoNHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoNHre")),
+  vetoPHre_(iConfig.getUntrackedParameter< std::vector<double> >("vetoPHre"))
+  
+{
+  usesResource("TFileService");
+  edm::Service<TFileService> fs;
+  tree = fs->make<TTree>("tree", "Tree for isolation study");
+
+  IsoNtuple = fs->make<TH1D>("tracks" , "Tracks" , 100 , 0 , 5000 );
+}
+
+IsoAnalyzer::~IsoAnalyzer()
+{
+
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+}
+
+
+// member functions
+// ------------ method called for each event  ------------
+void IsoAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
+
+ using namespace reco;
+ using namespace isodeposit;
+ using namespace edm;
+
+ b_nh_pt.clear();
+ b_nh_eta.clear();
+ b_nh_phi.clear();
+
+ edm::Handle<edm::View<pat::Muon> > muons;
+ iEvent.getByToken(muonLabel_, muons);
+/*
+ edm::EDGetTokenT<bool> BadChCandFilterToken_;
+ BadChCandFilterToken_(consumes<bool>(iConfig.getParameter<edm::InputTag>("BadChargedCandidateFilter"))),
+
+ edm::Handle<bool> ifilterbadChCand;
+ iEvent.getByToken(BadChCandFilterToken_, ifilterbadChCand);
+ bool  filterbadChCandidate = *ifilterbadChCand;
+ if (filterbadChCandiate = true) continue;
+
+ edm::EDGetTokenT<bool> BadPFMuonFilterToken_;
+ BadPFMuonFilterToken_(consumes<bool>(iConfig.getParameter<edm::InputTag>("BadPFMuonFilter"))),
+
+ edm::Handle<bool> ifilterbadPFMuon;
+ iEvent.getByToken(BadPFMuonFilterToken_, ifilterbadPFMuon);
+ bool filterbadPFMuon = *ifilterbadPFMuon;
+ if (filterbadPFMuon = true) continue;
+*/
+  //edm::Handle<reco::PFCandidateCollection> pfCandidates_; 
+  //iEvent.getByToken(pfCandidateLabel_, pfCandidates_);
+
+ edm::Handle<pat::PackedCandidateCollection> pfcands;
+ iEvent.getByToken(pfSrc_, pfcands);
+
+ edm::Handle<reco::VertexCollection> vertexHandle;
+ iEvent.getByToken(vertexToken_, vertexHandle);  
+ if ( !vertexHandle.isValid() or vertexHandle->size() <= 0 ) return;
+  const auto& vertex = vertexHandle->at(0);
+  //const reco::Vertex& vertex = vertexHandle->at(0);
+
+  for (unsigned imu = 0; imu != muons->size(); imu++) {
+    pat::Muon muon = muons->at(imu);
+
+    bool isTight = false;
+
+    if( muon::isTightMuon( muon, vertex) ) isTight = true;
+
+    if( !isTight ) continue;
+
+    if( muon.pt() < 20 ) continue;
+    if( muon.eta() < -2.1 ) continue;
+    if( muon.eta() > 2.1 ) continue;
+
+    bool GoodMuon = false;
+    if( muon.pt() > 20 && std::abs(muon.eta()) < 2.1) GoodMuon = true;
+
+    //Clear the leafs for every muon loop
+    b_EVENT = b_RUN = b_LUMI = 0;
+    b_pt = b_energy = 0;
+    b_eta = b_phi = -10;
+    b_chn = b_nhn = b_phn = 0;
+    b_ch_dR = b_nh_dR = b_ph_dR = 0;
+    b_ch_dPhi = b_nh_dPhi = b_ph_dPhi = 0;
+    b_ch_dEta = b_nh_dEta = b_ph_dEta = 0;
+
+    b_chiso0_005 = b_chiso005_01 = b_chiso01_015 = b_chiso015_02 = b_chiso02_025 = b_chiso025_03 = 0; 
+    b_nhiso0_005 = b_nhiso005_01 = b_nhiso01_015 = b_nhiso015_02 = b_nhiso02_025 = b_nhiso025_03 = 0;
+    b_phiso0_005 = b_phiso005_01 = b_phiso01_015 = b_phiso015_02 = b_phiso02_025 = b_phiso025_03 = 0;
+    b_puiso0_005 = b_puiso005_01 = b_puiso01_015 = b_puiso015_02 = b_puiso02_025 = b_puiso025_03 = 0;
+    b_chiso =  b_schiso = b_nhiso = b_phiso = b_puiso = 0;
+    b_absiso = b_reliso = 0;
+    b_chiso_org = b_puChiso_org = b_nhiso_org = b_phiso_org = b_absiso_org = b_reliso_org = b_neutral_org = 0;
+    b_neutral = 0;
+    b_trackiso = b_ecaliso = b_hcaliso = 0;
+
+    //Fill Branch
+    b_EVENT  = iEvent.id().event();
+    b_RUN    = iEvent.id().run();
+    b_LUMI   = iEvent.id().luminosityBlock();
+
+    b_energy = muon.energy();
+    b_pt = muon.pt();
+    b_eta = muon.eta();
+    b_phi = muon.phi();
+ 
+    IsoDeposit::Direction Dir = Direction(muon.eta(),muon.phi());
+
+    IsoDeposit::AbsVetos vetos_ch;
+    vetos_ch.push_back(new ConeVeto( Dir, vetoCHdR_ ));
+    vetos_ch.push_back(new ThresholdVeto( vetoCHThreshold_ ));
+    vetos_ch.push_back(new RectangularEtaPhiVeto( Dir, vetoCHre_[0], vetoCHre_[1], vetoCHre_[2], vetoCHre_[3]));
+
+    IsoDeposit::AbsVetos vetos_nh;
+    vetos_nh.push_back(new ConeVeto( Dir, vetoNHdR_ ));
+    vetos_nh.push_back(new ThresholdVeto( vetoNHThreshold_ ));
+    vetos_nh.push_back(new RectangularEtaPhiVeto( Dir, vetoNHre_[0], vetoNHre_[1], vetoNHre_[2], vetoNHre_[3]));
+
+    IsoDeposit::AbsVetos vetos_ph;
+    vetos_ph.push_back(new ConeVeto( Dir, vetoPHdR_ ));
+    vetos_ph.push_back(new ThresholdVeto( vetoPHThreshold_ ));
+    vetos_ph.push_back(new RectangularEtaPhiVeto( Dir, vetoPHre_[0], vetoPHre_[1], vetoPHre_[2], vetoPHre_[3]));
+ 
+
+    std::vector<reco::CandidatePtr> footprint; 
+    for (unsigned int i = 0, n=muon.numberOfSourceCandidatePtrs(); i < n; ++i) {
+        footprint.push_back(muon.sourceCandidatePtr(i));  
+    }
+
+    for (unsigned int i = 0, n = pfcands->size(); i < n; ++i) {
+      const pat::PackedCandidate &pfc = (*pfcands)[i];
+      const unsigned int absId = std::abs(pfc.pdgId());
+      double dR = deltaR( muon.p4(), pfc.p4() );
+      double dPhi = deltaPhi( muon.phi(), pfc.phi() );
+      double dEta = muon.eta() - pfc.eta();
+      double iso = pfc.pt();
+
+      if( absId ==  211 ) {  // charged hadron
+        if( dR < 0.3 ) {
+          //testing footprint
+          if(std::find(footprint.begin(), footprint.end(),  reco::CandidatePtr(pfcands,i)) != footprint.end()) {
+             continue;
+          } 
+          //end footprint 
+          if( pfc.fromPV() >= 2 ){ 
+            if( iso < 0.5 ) continue;
+            b_chn++;
+            b_ch_dR = b_ch_dR + dR; 
+            b_ch_dPhi = b_ch_dPhi + dPhi; 
+            b_ch_dEta = b_ch_dEta + dEta;
+            b_chiso = b_chiso + iso;
+            if( dR < 0.05 )      b_chiso0_005 = b_chiso0_005 + iso;
+            else if( dR < 0.1 )  b_chiso005_01 = b_chiso005_01 + iso;
+            else if( dR < 0.15 ) b_chiso01_015 = b_chiso01_015 + iso;
+            else if( dR < 0.2 )  b_chiso015_02 = b_chiso015_02 + iso;
+            else if( dR < 0.25 ) b_chiso02_025 = b_chiso02_025 + iso;
+            else                 b_chiso025_03 = b_chiso025_03 + iso;
+            b_schiso = b_chiso0_005 + b_chiso005_01 + b_chiso01_015 + b_chiso015_02 + b_chiso02_025 + b_chiso025_03;
+          
+          }
+          else{
+            if( iso < 0.5 ) continue;
+            b_puiso = b_puiso + iso;
+            if( dR < 0.05 )      b_puiso0_005 = b_puiso0_005 + iso;
+            else if( dR < 0.1 )  b_puiso005_01 = b_puiso005_01 + iso;
+            else if( dR < 0.15 ) b_puiso01_015 = b_puiso01_015 + iso;
+            else if( dR < 0.2 )  b_puiso015_02 = b_puiso015_02 + iso;
+            else if( dR < 0.25 ) b_puiso02_025 = b_puiso02_025 + iso;
+            else                 b_puiso025_03 = b_puiso025_03 + iso;
+          
+          }
+        }
+      } 
+
+      // neutral hadron
+      if( absId ==  130 ) {
+        if( dR < 0.3 ) {
+          if ( iso < 0.5) continue;
+          b_nhn++;
+          b_nh_dR = b_nh_dR + dR;
+          b_nh_dPhi = b_nh_dPhi + dPhi; 
+          b_nh_dEta = b_nh_dEta + dEta;
+          b_nh_pt.push_back(iso);
+          b_nh_eta.push_back(pfc.eta());
+          b_nh_phi.push_back(pfc.phi());
+          b_nhiso = b_nhiso + iso;
+            if( dR < 0.05 )      b_nhiso0_005 = b_nhiso0_005 + iso;
+            else if( dR < 0.1 )  b_nhiso005_01 = b_nhiso005_01 + iso;
+            else if( dR < 0.15 ) b_nhiso01_015 = b_nhiso01_015 + iso;
+            else if( dR < 0.2 )  b_nhiso015_02 = b_nhiso015_02 + iso;
+            else if( dR < 0.25 ) b_nhiso02_025 = b_nhiso02_025 + iso;
+            else                 b_nhiso025_03 = b_nhiso025_03 + iso;
+        }
+      }
+
+      // photon
+      if( absId == 22 ) {
+        if( dR < 0.3 ) {
+          if ( iso < 0.5 ) continue;
+          b_phn++;
+          b_ph_dR = b_ph_dR + dR;
+          b_ph_dPhi = b_ph_dPhi + dPhi; 
+          b_ph_dEta = b_ph_dEta + dEta;
+          b_phiso = b_phiso + iso;
+            if( dR < 0.05 )      b_phiso0_005 = b_phiso0_005 + iso;
+            else if( dR < 0.1 )  b_phiso005_01 = b_phiso005_01 + iso;
+            else if( dR < 0.15 ) b_phiso01_015 = b_phiso01_015 + iso;
+            else if( dR < 0.2 )  b_phiso015_02 = b_phiso015_02 + iso;
+            else if( dR < 0.25 ) b_phiso02_025 = b_phiso02_025 + iso;
+            else                 b_phiso025_03 = b_phiso025_03 + iso;
+        }
+      }
+     
+     b_neutral = b_nhiso + b_phiso;
+     b_absiso = b_chiso + std::max(0.0, b_neutral-0.5*b_puiso);
+     if( b_pt > 0 ) b_reliso = b_absiso / b_pt;
+    
+
+
+    } //end of pf candidates loop
+
+
+    //to compare with original member function
+    b_chiso_org = muon.chargedHadronIso();
+    b_puChiso_org = muon.puChargedHadronIso();
+    b_nhiso_org = muon.neutralHadronIso();
+    b_phiso_org = muon.photonIso();
+    b_neutral_org = b_nhiso_org + b_phiso_org;
+    b_absiso_org = b_chiso_org + std::max(0.0, b_neutral_org-0.5*b_puChiso_org);
+    if( b_pt > 0 ) b_reliso_org = b_absiso_org / b_pt;
+
+    b_chiso03_org = muon.pfIsolationR03().sumChargedHadronPt;
+    b_puChiso03_org = muon.pfIsolationR03().sumPUPt;
+    b_nhiso03_org = muon.pfIsolationR03().sumNeutralHadronEt;
+    b_phiso03_org = muon.pfIsolationR03().sumPhotonEt;
+    b_neutral03_org = b_nhiso03_org + b_phiso03_org;
+    b_absiso03_org = b_chiso03_org + std::max(0.0, b_neutral03_org-0.5*b_puChiso03_org);
+    if( b_pt > 0 ) b_reliso03_org = b_absiso03_org / b_pt;
+
+    if( b_chn != 0 ){
+      b_ch_dR = b_ch_dR/b_chn;
+      b_ch_dPhi = b_ch_dPhi/b_chn;
+      b_ch_dEta = b_ch_dEta/b_chn;
+    }
+
+    if( b_nhn != 0){
+      b_nh_dR = b_nh_dR/b_nhn;
+      b_nh_dPhi = b_nh_dPhi/b_nhn;
+      b_nh_dEta = b_nh_dEta/b_nhn;
+    }
+
+    //to check duplicated particle
+/*
+    if ( b_nh_dEta > 0.043 &&  b_nh_dEta < 0.045) {
+      cout << "EVENT " << b_EVENT << endl;
+      cout << "muon:" << muon.pt() << ", " << muon.eta() << ", " << muon.phi() << ", " << muon.energy() << endl;
+      cout << "Number of Neutral Hadron around Muon in 0.043 < nh_dEta < 0.045: " << b_nhn << endl;
+      for (unsigned int i = 0, n = pfcands->size(); i < n; ++i) {
+        const pat::PackedCandidate &pfc = (*pfcands)[i];
+        double dR = deltaR( muon.p4(), pfc.p4() );
+        double iso = pfc.pt();
+        const unsigned int absId = std::abs(pfc.pdgId());
+
+        if ( absId == 130 ){
+          if( dR < 0.3 ){
+            if( iso < 0.5 ) continue;
+            cout << std::abs(pfc.pdgId()) <<  ", " <<  pfc.pt() << ", "  << pfc.eta() << ", " <<  pfc.phi() << ", " <<  pfc.energy() << endl; 
+          }
+        }
+      }
+      cout << endl;
+    }
+*/
+    if( b_phn != 0){
+      b_ph_dR = b_ph_dR/b_phn;
+      b_ph_dPhi = b_ph_dPhi/b_phn;
+      b_ph_dEta = b_ph_dEta/b_phn;
+    }
+
+    b_nhiso03_org = muon.pfIsolationR03().sumNeutralHadronEt;
+    b_trackiso = muon.trackIso();
+    b_ecaliso = muon.ecalIso();
+    b_hcaliso = muon.hcalIso();
+
+/*
+    cout << "here 1" << endl;
+    double chiso = muon.isoDeposit(pat::PfChargedHadronIso)->depositAndCountWithin(dRch_, vetos_ch).first;
+    cout << "here 2" << endl;
+    double nhiso = muon.isoDeposit(pat::PfNeutralHadronIso)->depositAndCountWithin(dRnh_, vetos_nh).first;
+    cout << "here 3 " << endl;
+    double phiso = muon.isoDeposit(pat::PfGammaIso)->depositAndCountWithin(dRph_, vetos_ph).first;
+    cout << "here 4 " << endl;
+    double chn = muon.isoDeposit(pat::PfChargedHadronIso)->depositAndCountWithin(dRch_, vetos_ch).second;
+    cout << "here 5 " << endl;
+    double nhn = muon.isoDeposit(pat::PfNeutralHadronIso)->depositAndCountWithin(dRnh_, vetos_nh).second;
+    cout << "here 6 " << endl;
+    double phn = muon.isoDeposit(pat::PfGammaIso)->depositAndCountWithin(dRph_, vetos_ph).second;
+    cout << "here 7 " << endl;
+
+*/
+    //to study surrounding particles
+    typedef reco::IsoDeposit::const_iterator IM;
+
+  if( GoodMuon ) tree->Fill(); 
+    break;
+  } 
+}
+
+
+// ------------ method called once each job just before starting event loop  ------------
+void IsoAnalyzer::beginJob(){
+
+   tree->Branch("EVENT", &b_EVENT, "EVENT/i");
+   tree->Branch("RUN"  , &b_RUN  , "RUN/i");
+   tree->Branch("LUMI" , &b_LUMI , "LUMI/i");
+
+   tree->Branch("energy" , &b_energy , "energy/d");
+   tree->Branch("pt" , &b_pt , "pt/d");
+   tree->Branch("eta", &b_eta, "eta/d");
+   tree->Branch("phi", &b_phi, "phi/d");
+
+   tree->Branch("chIso0_005" , &b_chiso0_005 , "chiso0_005/d");
+   tree->Branch("chIso005_01", &b_chiso005_01, "chiso005_01/d");
+   tree->Branch("chIso01_015", &b_chiso01_015, "chiso01_015/d");
+   tree->Branch("chIso015_02", &b_chiso015_02, "chiso015_02/d");
+   tree->Branch("chIso02_025", &b_chiso02_025, "chiso02_025/d");
+   tree->Branch("chIso025_03", &b_chiso025_03, "chiso025_03/d");
+   tree->Branch("chIso"      , &b_chiso      , "chiso/d");
+   tree->Branch("schIso"     , &b_schiso     , "schiso/d");
+
+   tree->Branch("nhIso0_005" , &b_nhiso0_005 , "nhiso0_005/d");
+   tree->Branch("nhIso005_01", &b_nhiso005_01, "nhiso005_01/d");
+   tree->Branch("nhIso01_015", &b_nhiso01_015, "nhiso01_015/d");
+   tree->Branch("nhIso015_02", &b_nhiso015_02, "nhiso015_02/d");
+   tree->Branch("nhIso02_025", &b_nhiso02_025, "nhiso02_025/d");
+   tree->Branch("nhIso025_03", &b_nhiso025_03, "nhiso025_03/d");
+   tree->Branch("nhIso"      , &b_nhiso      , "nhiso/d");
+
+   tree->Branch("phIso0_005" , &b_phiso0_005 , "phiso0_005/d");
+   tree->Branch("phIso005_01", &b_phiso005_01, "phiso005_01/d");
+   tree->Branch("phIso01_015", &b_phiso01_015, "phiso01_015/d");
+   tree->Branch("phIso015_02", &b_phiso015_02, "phiso015_02/d");
+   tree->Branch("phIso02_025", &b_phiso02_025, "phiso02_025/d");
+   tree->Branch("phIso025_03", &b_phiso025_03, "phiso025_03/d");
+   tree->Branch("phIso"      , &b_phiso      , "phiso/d");
+
+   tree->Branch("puiso0_005" , &b_puiso0_005 , "puiso0_005/d");
+   tree->Branch("puiso005_01", &b_puiso005_01, "puiso005_01/d");
+   tree->Branch("puiso01_015", &b_puiso01_015, "puiso01_015/d");
+   tree->Branch("puiso015_02", &b_puiso015_02, "puiso015_02/d");
+   tree->Branch("puiso02_025", &b_puiso02_025, "puiso02_025/d");
+   tree->Branch("puiso025_03", &b_puiso025_03, "puiso025_03/d");
+   tree->Branch("puiso"      , &b_puiso      , "puiso/d");
+
+   tree->Branch("abIso" , &b_absiso, "absiso/d");
+   tree->Branch("relIso", &b_reliso, "reliso/d");
+
+   tree->Branch("chIso_org"  , &b_chiso_org  , "chiso_org/d");
+   tree->Branch("puChIso_org", &b_puChiso_org, "puChiso_org/d");
+   tree->Branch("nhIso_org"  , &b_nhiso_org  , "nhiso_org/d");
+   tree->Branch("phIso_org"  , &b_phiso_org  , "phiso_org/d");
+   tree->Branch("absIso_org" , &b_absiso_org , "absiso_org/d");
+   tree->Branch("relIso_org" , &b_reliso_org , "reliso_org/d");
+
+   tree->Branch("chIso03_org"  , &b_chiso03_org  , "chiso03_org/d");
+   tree->Branch("puChIso03_org", &b_puChiso03_org, "puChiso03_org/d");
+   tree->Branch("nhIso03_org"  , &b_nhiso03_org  , "nhiso03_org/d");
+   tree->Branch("phIso03_org"  , &b_phiso03_org  , "phiso03_org/d");
+   tree->Branch("absIso03_org" , &b_absiso03_org , "absiso03_org/d");
+   tree->Branch("relIso03_org" , &b_reliso03_org , "reliso03_org/d");
+
+   tree->Branch("chN", &b_chn, "chn/I");
+   tree->Branch("nhN", &b_nhn, "nhn/I");
+   tree->Branch("phN", &b_phn, "phn/I");
+
+   tree->Branch("ch_dR", &b_ch_dR, "ch_dR/d");
+   tree->Branch("nh_dR", &b_nh_dR, "nh_dR/d");
+   tree->Branch("ph_dR", &b_ph_dR, "ph_dR/d");
+
+   tree->Branch("ch_dPhi", &b_ch_dPhi,"ch_dPhi/d");
+   tree->Branch("nh_dPhi", &b_nh_dPhi,"nh_dPhi/d");
+   tree->Branch("ph_dPhi", &b_ph_dPhi,"ph_dPhi/d");
+
+   tree->Branch("ch_dEta", &b_ch_dEta, "ch_dEta/d");
+   tree->Branch("nh_dEta", &b_nh_dEta, "nh_dEta/d");
+   tree->Branch("ph_dEta", &b_ph_dEta, "ph_dEta/d");
+
+   tree->Branch("nh_pt", "vector<double>", &b_nh_pt);
+   tree->Branch("nh_eta", "vector<double>", &b_nh_eta);
+   tree->Branch("nh_phi", "vector<double>", &b_nh_phi);
+
+   tree->Branch("trackIso", &b_trackiso, "trackIso/d");
+   tree->Branch("ecalIso", &b_ecaliso, "ecalIso/d");
+   tree->Branch("hcalIso", &b_hcaliso, "hcalIso/d");
+
+}
+
+// ------------ method called once each job just after ending the event loop  ------------
+void IsoAnalyzer::endJob() 
+{
+}
+
+// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
+void IsoAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  //The following says we do not know what parameters are allowed so do no validation
+  // Please change this to state exactly what you do use, even if it is no parameters
+  edm::ParameterSetDescription desc;
+  desc.setUnknown();
+  descriptions.addDefault(desc);
+
+  //Specify that only 'tracks' is allowed
+  //To use, remove the default given above and uncomment below
+  //ParameterSetDescription desc;
+  //desc.addUntracked<edm::InputTag>("tracks","ctfWithMaterialTracks");
+  //descriptions.addDefault(desc);
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(IsoAnalyzer);
